@@ -22,6 +22,8 @@ static int cache_name_compare(const char *name1, int len1, const char *name2, in
 
 static int cache_name_pos(const char *name, int namelen)
 {
+    /* binary search */
+    /* cache entry is sorted by name */
 	int first, last;
 
 	first = 0;
@@ -31,7 +33,7 @@ static int cache_name_pos(const char *name, int namelen)
 		struct cache_entry *ce = active_cache[next];
 		int cmp = cache_name_compare(name, namelen, ce->name, ce->namelen);
 		if (!cmp)
-			return -next-1;
+			return -next-1; /* return <0 to indicate match the name */
 		if (cmp < 0) {
 			last = next;
 			continue;
@@ -66,7 +68,7 @@ static int add_cache_entry(struct cache_entry *ce)
 
 	/* Make sure the array is big enough .. */
 	if (active_nr == active_alloc) {
-		active_alloc = alloc_nr(active_alloc);
+		active_alloc = alloc_nr(active_alloc); /* expand the array */
 		active_cache = realloc(active_cache, active_alloc * sizeof(struct cache_entry *));
 	}
 
@@ -91,6 +93,7 @@ static int index_fd(const char *path, int namelen, struct cache_entry *ce, int f
 	if (!out || (int)(long)in == -1)
 		return -1;
 
+    /* zip the content of the file */
 	memset(&stream, 0, sizeof(stream));
 	deflateInit(&stream, Z_BEST_COMPRESSION);
 
@@ -114,10 +117,12 @@ static int index_fd(const char *path, int namelen, struct cache_entry *ce, int f
 
 	deflateEnd(&stream);
 	
+    /* checksum of the zipped data */
 	SHA1_Init(&c);
 	SHA1_Update(&c, out, stream.total_out);
 	SHA1_Final(ce->sha1, &c);
 
+    /* write zipped data to file, named by checksum */
 	return write_sha1_buffer(ce->sha1, out, stream.total_out);
 }
 
@@ -138,6 +143,7 @@ static int add_file_to_cache(char *path)
 		close(fd);
 		return -1;
 	}
+    /* init a new cache entry */
 	namelen = strlen(path);
 	size = cache_entry_size(namelen);
 	ce = malloc(size);
@@ -155,6 +161,7 @@ static int add_file_to_cache(char *path)
 	ce->st_size = st.st_size;
 	ce->namelen = namelen;
 
+    /* calc the checksum of the cache entry */
 	if (index_fd(path, namelen, ce, fd, &st) < 0)
 		return -1;
 
@@ -171,6 +178,7 @@ static int write_cache(int newfd, struct cache_entry **cache, int entries)
 	hdr.version = 1;
 	hdr.entries = entries;
 
+    /* calc the checksum of the all cache entriy */
 	SHA1_Init(&c);
 	SHA1_Update(&c, &hdr, offsetof(struct cache_header, sha1));
 	for (i = 0; i < entries; i++) {
@@ -180,9 +188,11 @@ static int write_cache(int newfd, struct cache_entry **cache, int entries)
 	}
 	SHA1_Final(hdr.sha1, &c);
 
+    /* write header */
 	if (write(newfd, &hdr, sizeof(hdr)) != sizeof(hdr))
 		return -1;
 
+    /* write entry */
 	for (i = 0; i < entries; i++) {
 		struct cache_entry *ce = cache[i];
 		int size = ce_size(ce);
@@ -224,6 +234,8 @@ int main(int argc, char **argv)
 {
 	int i, newfd, entries;
 
+    /* active number of cache entry in the index */
+    /* cache entry is stored in a global var: active_cache */
 	entries = read_cache();
 	if (entries < 0) {
 		perror("cache corrupted");
@@ -237,6 +249,7 @@ int main(int argc, char **argv)
 	}
 	for (i = 1 ; i < argc; i++) {
 		char *path = argv[i];
+        /* simple check path validation */
 		if (!verify_path(path)) {
 			fprintf(stderr, "Ignoring path %s\n", argv[i]);
 			continue;
