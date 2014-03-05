@@ -30,6 +30,7 @@ static int unpack(unsigned char *sha1)
 	return 0;
 }
 
+/* read a snapshoot info by a hex key */
 int main(int argc, char **argv)
 {
 	int fd;
