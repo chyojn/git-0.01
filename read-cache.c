@@ -225,6 +225,7 @@ int read_cache(void)
 	if (access(sha1_file_directory, X_OK) < 0)
 		return error("no access to SHA1 file directory");
 	fd = open(".dircache/index", O_RDONLY);
+    /* return 0 if index not exist, so there is 0 entry  */
 	if (fd < 0)
 		return (errno == ENOENT) ? 0 : error("open failed");
 
@@ -233,6 +234,7 @@ int read_cache(void)
 		map = NULL;
 		size = st.st_size;
 		errno = EINVAL;
+        /* if there are at least one cache entriy in the index*/
 		if (size > sizeof(struct cache_header))
 			map = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	}
@@ -241,20 +243,22 @@ int read_cache(void)
 		return error("mmap failed");
 
 	hdr = map;
+    /* check header's validation by checksum and content */
 	if (verify_hdr(hdr, size) < 0)
 		goto unmap;
 
 	active_nr = hdr->entries;
-	active_alloc = alloc_nr(active_nr);
+	active_alloc = alloc_nr(active_nr); /* why not just use active_nr? */
 	active_cache = calloc(active_alloc, sizeof(struct cache_entry *));
 
 	offset = sizeof(*hdr);
+    /* read cache entry one by one */
 	for (i = 0; i < hdr->entries; i++) {
 		struct cache_entry *ce = map + offset;
-		offset = offset + ce_size(ce);
+		offset = offset + ce_size(ce); /* next entry's offset */
 		active_cache[i] = ce;
 	}
-	return active_nr;
+	return active_nr; /* return the active number of entry */
 
 unmap:
 	munmap(map, size);

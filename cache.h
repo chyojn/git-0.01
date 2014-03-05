@@ -65,6 +65,7 @@ unsigned int active_nr, active_alloc;
 #define DB_ENVIRONMENT "SHA1_FILE_DIRECTORY"
 #define DEFAULT_DB_ENVIRONMENT ".dircache/objects"
 
+/* (x+8) & ~7 == argmin(y > x and y % 8 == 0) */
 #define cache_entry_size(len) ((offsetof(struct cache_entry,name) + (len) + 8) & ~7)
 #define ce_size(ce) cache_entry_size((ce)->namelen)
 
