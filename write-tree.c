@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 	buffer = malloc(size);
 	offset = ORIG_OFFSET;
 
+    /* construct the index table with entry's mode, name, and checksum */
 	for (i = 0; i < entries; i++) {
 		struct cache_entry *ce = active_cache[i];
 		if (check_valid_sha1(ce->sha1) < 0)
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
 	buffer += i;
 	offset -= i;
 
+    /* write the table to a file as a common object */
 	write_sha1_file(buffer, offset);
 	return 0;
 }
