@@ -41,8 +41,11 @@ static void show_differences(struct cache_entry *ce, struct stat *cur,
 	static char cmd[1000];
 	FILE *f;
 
+    /* -u: 3 line context 
+     * -: diff between stdin and file */
 	snprintf(cmd, sizeof(cmd), "diff -u - %s", ce->name);
 	f = popen(cmd, "w");
+    /* write old content to stdin of diff */
 	fwrite(old_contents, old_size, 1, f);
 	pclose(f);
 }
@@ -56,6 +59,7 @@ int main(int argc, char **argv)
 		perror("read_cache");
 		exit(1);
 	}
+    /* check files that cached */
 	for (i = 0; i < entries; i++) {
 		struct stat st;
 		struct cache_entry *ce = active_cache[i];
@@ -65,20 +69,25 @@ int main(int argc, char **argv)
 		char type[20];
 		void *new;
 
+        /* get current stat of file */
 		if (stat(ce->name, &st) < 0) {
 			printf("%s: %s\n", ce->name, strerror(errno));
 			continue;
 		}
+        /* check filt stat */
 		changed = match_stat(ce, &st);
 		if (!changed) {
 			printf("%s: ok\n", ce->name);
 			continue;
 		}
+        /* if file stat changed */
 		printf("%.*s:  ", ce->namelen, ce->name);
 		for (n = 0; n < 20; n++)
 			printf("%02x", ce->sha1[n]);
 		printf("\n");
+        /* read file content from cache */
 		new = read_sha1_file(ce->sha1, type, &size);
+        /* show diff between current ce->name and old content, using diff */
 		show_differences(ce, &st, new, size);
 		free(new);
 	}
