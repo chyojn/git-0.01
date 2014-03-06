@@ -120,9 +120,11 @@ int main(int argc, char **argv)
 	char *buffer;
 	unsigned int size;
 
+    /* varify commit's checksum */
 	if (argc < 2 || get_sha1_hex(argv[1], tree_sha1) < 0)
 		usage("commit-tree <sha1> [-p <sha1>]* < changelog");
 
+    /* varify parents' checksum */
 	for (i = 2; i < argc; i += 2) {
 		char *a, *b;
 		a = argv[i]; b = argv[i+1];
@@ -132,6 +134,7 @@ int main(int argc, char **argv)
 	}
 	if (!parents)
 		fprintf(stderr, "Committing initial tree %s\n", argv[1]);
+    /* get commiter's info: name, email, date */
 	pw = getpwuid(getuid());
 	if (!pw)
 		usage("You don't exist. Go away!");
@@ -152,6 +155,7 @@ int main(int argc, char **argv)
 	remove_special(date); remove_special(realdate);
 
 	init_buffer(&buffer, &size);
+    /* buffer of commit object */
 	add_buffer(&buffer, &size, "tree %s\n", sha1_to_hex(tree_sha1));
 
 	/*
